@@ -1,129 +1,132 @@
-from flask import Flask, request, render_template, url_for, redirect, session
-from pathlib import Path
+from flask import Flask, request, render_template, redirect, url_for, session
+from flask_wtf import FlaskForm
+from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, EqualTo, Length
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import check_password_hash, generate_password_hash
+from pathlib import Path
 from pydantic import ValidationError
 from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 from exercise_sheet_to_graph.infosaver import InfoSaver
 from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson
-from exercise_sheet_to_graph.utils import normalize_string
 
 app = Flask(__name__)
-app.secret_key = "not_forever_key"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Use SqLite
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = 'to_a_better_key'
 
+# Configura il database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-class User(db.Model):
+
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
     name = db.Column(db.String(150), nullable=False)
     surname = db.Column(db.String(150), nullable=False)
 
+    def get_id(self):
+        return str(self.id)
 
-# with app.app_context():
-#    db.create_all()
+
+with app.app_context():
+    db.create_all()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 # Load the district and exercise mapper, load the info saver
 exercise_mapper = DistrictExerciseMapper(config_path='../../config/district_and_exercise_italian.yaml')
 info_saver = InfoSaver(base_dir=Path('../../db'))
 
 
+class RegistrationForm(FlaskForm):
+    name = StringField('Nome', validators=[DataRequired(), Length(min=2, max=50)])
+    surname = StringField('Cognome', validators=[DataRequired(), Length(min=2, max=50)])
+    username = StringField('Nome Utente', validators=[DataRequired(), Length(min=4, max=25)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Conferma Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Registrati')
+
+
+class LoginForm(FlaskForm):
+    username = StringField('Nome Utente', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = normalize_string(request.form.get('username'))
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        name = normalize_string(request.form.get('name'))
-        surname = normalize_string(request.form.get('surname'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Verifiy if the username is already in use
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            error = 'Nome utente già in uso. Scegli un altro.'
+            return render_template('register.html', form=form, error=error)
 
-        if not username or not password or not name or not surname:
-            error = 'Compila tutti i campi.'
-            return render_template('register.html', error=error)
-
-        if confirm_password != password:
-            error = 'Le password non corrispondono.'
-            return render_template('register.html', error=error)
-
-        # Check if the username is already taken
-        user = User.query.filter_by(username=username).first()
-        if user:
-            error = 'Username già in uso. Scegline un altro.'
-            return render_template('register.html', error=error)
-
-        # Create a new User instance
+        # Create a new user
+        hashed_password = generate_password_hash(form.password.data)
         new_user = User(
-            username=username,
-            password_hash=generate_password_hash(password),
-            name=name,
-            surname=surname
+            username=form.username.data,
+            password_hash=hashed_password,
+            name=form.name.data,
+            surname=form.surname.data
         )
-
-        # Save the new user
         db.session.add(new_user)
         db.session.commit()
-
-        return redirect(url_for('login'))
-
-    return render_template('register.html')
+        login_user(new_user)
+        return redirect(url_for('index'))
+    return render_template('register.html', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-
-        username = normalize_string(request.form.get('username'))
-        password = request.form.get('password')
-
-        user = User.query.filter_by(username=username).first()
-
-        if user and check_password_hash(user.password_hash, password):
-            session['logged_in'] = True
-            session['user_id'] = user.id
-            session['username'] = user.username
+    form = LoginForm()
+    if form.validate_on_submit():
+        # Search user in database
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and check_password_hash(user.password_hash, form.password.data):
+            login_user(user)
             return redirect(url_for('index'))
         else:
             error = 'Credenziali non valide. Riprova.'
-            return render_template('login.html', error=error)
-
-    return render_template('login.html')
+            return render_template('login.html', form=form, error=error)
+    return render_template('login.html', form=form)
 
 
 @app.route('/logout')
+@login_required
 def logout():
-    session.clear()
+    logout_user()
     return redirect(url_for('login'))
 
 
 @app.route('/', methods=['GET'])
+@login_required
 def index():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
-    user = User.query.get(session.get('user_id'))
-
     districts = list(exercise_mapper.district_to_exercises.keys())
     exercises = list(exercise_mapper.exercises_to_district.keys())
 
     return render_template('index.html', districts=districts, exercises=exercises,
                            district_to_exercises=exercise_mapper.district_to_exercises,
-                           exercises_to_district=exercise_mapper.exercises_to_district, user=user)
+                           exercises_to_district=exercise_mapper.exercises_to_district)
 
 
 @app.route('/submit', methods=['POST'])
+@login_required
 def submit():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
     try:
-        # Get data from form
-        user = User.query.get(session['user_id'])
-        name = user.name
-        surname = user.surname
+        name = current_user.name
+        surname = current_user.surname
 
         exercise_list = []
 
@@ -134,13 +137,11 @@ def submit():
             reps = request.form.get(f'exercises[{index}][reps]')
             weight = request.form.get(f'exercises[{index}][weight]')
 
-            # Create an instance of Volume
             volume = Volume(
                 weight=int(weight),
                 reps=int(reps)
             )
 
-            # Create an instance of Exercise
             exercise = Exercise(
                 name=exercise_name,
                 district=district,
@@ -150,13 +151,11 @@ def submit():
             exercise_list.append(exercise)
             index += 1
 
-        # Create an instance of SheetPerson
         person = SheetPerson(
             name=f"{name} {surname}",
             exercises=exercise_list
         )
 
-        # Save the data using InfoSaver
         info_saver.save_person(person)
 
         return f'Data saved for {person.name}'

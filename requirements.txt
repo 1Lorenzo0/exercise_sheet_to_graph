@@ -3,4 +3,8 @@ plotly==5.24.1
 flask
 pyyaml
 flask-sqlalchemy
+flask-migrate
+flask-login
 werkzeug
+flask-wtf
+wtforms

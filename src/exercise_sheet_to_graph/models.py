@@ -11,6 +11,7 @@ class Volume(pydantic.BaseModel):
 
 class Exercise(pydantic.BaseModel):
     name: str = ""
+    district: str = ""
     volumes: List[Volume] = []
 
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro Esercizi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .exercise {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Inserisci i tuoi esercizi</h1>
+
+<form id="exercise-form" method="POST" action="/submit">
+    <label for="name">Nome:</label><br>
+    <input type="text" id="name" name="name" required><br><br>
+
+    <label for="surname">Cognome:</label><br>
+    <input type="text" id="surname" name="surname" required><br><br>
+
+    <div id="exercise-container">
+        <!-- Gli esercizi saranno aggiunti qui -->
+    </div>
+
+    <button type="button" onclick="addExercise()">Aggiungi Esercizio</button><br><br>
+
+    <input type="submit" value="Invia">
+</form>
+
+<script>
+    let exerciseCounter = 1;
+
+    // Dati dal backend
+    const districtToExercises = {{ district_to_exercises | tojson | safe }};
+    const exerciseToDistrict = {{ exercises_to_district | tojson | safe }};
+    const districts = {{ districts | tojson | safe }};
+    const exercises = {{ exercises | tojson | safe }};
+
+    function addExercise() {
+        const container = document.getElementById('exercise-container');
+
+        const div = document.createElement('div');
+        div.className = 'exercise';
+
+        div.innerHTML = `
+            <h3>Esercizio ${exerciseCounter}</h3>
+
+            <label for="district${exerciseCounter}">Distretto Muscolare:</label><br>
+            <select id="district${exerciseCounter}" name="exercises[${exerciseCounter}][district]" onchange="updateExercises(${exerciseCounter})">
+                <option value="">Seleziona Distretto Muscolare</option>
+                ${districts.map(district => `<option value="${district}">${district}</option>`).join('')}
+            </select><br><br>
+
+            <label for="exerciseName${exerciseCounter}">Nome Esercizio:</label><br>
+            <select id="exerciseName${exerciseCounter}" name="exercises[${exerciseCounter}][name]" onchange="updateDistrict(${exerciseCounter})">
+                <option value="">Seleziona Esercizio</option>
+                ${exercises.map(exercise => `<option value="${exercise}">${exercise}</option>`).join('')}
+            </select><br><br>
+
+            <label for="reps${exerciseCounter}">Numero Ripetizioni:</label><br>
+            <input type="number" id="reps${exerciseCounter}" name="exercises[${exerciseCounter}][reps]" required><br><br>
+
+            <label for="weight${exerciseCounter}">Kilogrammi:</label><br>
+            <input type="number" id="weight${exerciseCounter}" name="exercises[${exerciseCounter}][weight]" required><br><br>
+        `;
+
+        container.appendChild(div);
+
+        exerciseCounter++;
+    }
+
+    function updateExercises(index) {
+        const districtSelect = document.getElementById(`district${index}`);
+        const exerciseSelect = document.getElementById(`exerciseName${index}`);
+        const selectedDistrict = districtSelect.value;
+
+        // Reset esercizi
+        exerciseSelect.innerHTML = '<option value="">Seleziona Esercizio</option>';
+
+        if (selectedDistrict) {
+            const availableExercises = districtToExercises[selectedDistrict];
+
+            availableExercises.forEach(exercise => {
+                const option = document.createElement('option');
+                option.value = exercise;
+                option.textContent = exercise;
+                exerciseSelect.appendChild(option);
+            });
+        }
+    }
+
+    function updateDistrict(index) {
+        const districtSelect = document.getElementById(`district${index}`);
+        const exerciseSelect = document.getElementById(`exerciseName${index}`);
+        const selectedExercise = exerciseSelect.value;
+
+        if (selectedExercise) {
+            const associatedDistrict = exerciseToDistrict[selectedExercise];
+            districtSelect.value = associatedDistrict;
+        }
+    }
+</script>
+
+</body>
+</html>

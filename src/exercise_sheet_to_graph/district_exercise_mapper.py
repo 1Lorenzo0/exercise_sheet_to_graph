@@ -1,5 +1,5 @@
 # district_exercise_mapper.py
-import json
+import yaml
 from typing import List, Optional
 from exercise_sheet_to_graph.utils import get_logger, normalize_string
 
@@ -8,10 +8,11 @@ logger = get_logger("sheet_to_graph")
 
 class DistrictExerciseMapper:
     def __init__(self, config_path: str):
+
         with open(config_path, "r") as read_file:
-            config = json.load(read_file)
+            config = yaml.safe_load(read_file)
         self.district_to_exercises = config.get("district_to_exercises", {})
-        self.exercises_to_district = config.get("exercises_to_district", {})
+        self.exercises_to_district = config.get("exercise_to_district", {})
 
     def get_exercise_by_district(self, district: str) -> Optional[List[str]]:
         """

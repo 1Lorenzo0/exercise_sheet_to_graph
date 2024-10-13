@@ -1,13 +1,14 @@
 import plotly.graph_objects as go
 from exercise_sheet_to_graph.models import Exercise
 from exercise_sheet_to_graph.utils import get_logger
+from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 
 logger = get_logger("sheet_to_graph")
 
 
 class GraphCreator:
-    def __init__(self):
-        pass
+    def __init__(self, mapper: DistrictExerciseMapper):
+        self.mapper_district_exercise = mapper
 
     def create_weight_per_reps_graph(self, exercise: Exercise, target_reps: int) -> go.Figure:
         """

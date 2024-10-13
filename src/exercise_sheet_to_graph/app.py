@@ -1,15 +1,19 @@
 from flask import Flask, request, render_template
 import yaml
+from pathlib import Path
 from datetime import datetime
 from pydantic import ValidationError
 from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
+from exercise_sheet_to_graph.infosaver import InfoSaver
 from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson
 from exercise_sheet_to_graph.utils import normalize_string
 
 app = Flask(__name__)
 
-# Load the district and exercise mapper
+# Load the district and exercise mapper, load the info saver
 exercise_mapper = DistrictExerciseMapper(config_path='../../config/district_and_exercise_italian.yaml')
+info_saver = InfoSaver(base_dir=Path('../../db'))
+
 
 @app.route('/', methods=['GET'])
 def index():
@@ -63,12 +67,14 @@ def submit():
         yaml_data = yaml.safe_dump(person.dict(), allow_unicode=True)
 
         # Save the data to a YAML file
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'../db/data_{timestamp}_{name}_{surname}.yaml'
-        with open(filename, 'w', encoding='utf-8') as file:
-            file.write(yaml_data)
+        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # filename = f'../../db/data_{timestamp}_{name}_{surname}.yaml'
+        # with open(filename, 'w', encoding='utf-8') as file:
+        #     file.write(yaml_data)
 
-        return f'Data saved successfully in file {filename}'
+        info_saver.save_person(person)
+
+        return f'Data saved for {person.name}'
 
     except ValidationError as e:
         return f'Data validation error: {e}', 400

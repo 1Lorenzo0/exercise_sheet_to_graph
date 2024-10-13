@@ -41,7 +41,8 @@ class InfoSaver:
             logger.error("No person inserted")
             return
 
-        file_path = self.base_dir / f"{info_person.name}.json"
+        name_to_save = info_person.name.replace(" ", "_")
+        file_path = self.base_dir / f"{name_to_save}.json"
 
         if file_path.exists():
             info_person = self._merge_data(info_person) or info_person
@@ -62,7 +63,8 @@ class InfoSaver:
             logger.error("No name inserted")
             return None
 
-        file_path = self.base_dir / f"{name}.json"
+        name_to_save = name.replace(" ", "_")
+        file_path = self.base_dir / f"{name_to_save}.json"
 
         if file_path.exists() and file_path.stat().st_size > 0:
             with open(file_path, 'r') as read_file:

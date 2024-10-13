@@ -16,6 +16,10 @@ class TestInfoSaver(unittest.TestCase):
         cls.key = "12345678".encode()
         cls.saver = InfoSaver(Path("./tests/data/db"))
 
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(Path("./tests/data/db/Lorenzo.json"))
+
     def test_saveperson(self):
         self.saver.save_person(info_person=self.info)
 

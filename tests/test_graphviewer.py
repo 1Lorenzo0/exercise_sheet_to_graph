@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 
 from exercise_sheet_to_graph.graph_viewer import GraphViewer
+from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 from exercise_sheet_to_graph.models import Volume, Exercise
 
 
@@ -18,7 +19,8 @@ class TestGraphViewer(unittest.TestCase):
                 Volume(ts=str(datetime(2023, 5, 1)), weight=100, reps=14),
             ]
         )
-        self.graph_viewer = GraphViewer()
+        mapper = DistrictExerciseMapper("./config/district_and_exercise_italian.yaml")
+        self.graph_viewer = GraphViewer(mapper)
 
     def test_show_weight_per_reps_graph(self):
         # Check if the method runs without errors

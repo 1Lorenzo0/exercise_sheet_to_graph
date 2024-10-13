@@ -11,8 +11,7 @@ class TestInfoSaver(unittest.TestCase):
         cls.info_generator = InfoGenerator()
         cls.name_person = "Lorenzo"
 
-        cls.info = cls.info_generator.get_informations(
-            "Lorenzo", Path("./tests/data/esempio.txt"))
+        cls.info = cls.info_generator.load_sheet_person_from_exercises_file("Lorenzo", Path("./tests/data/esempio.txt"))
         cls.key = "12345678".encode()
         cls.saver = InfoSaver(Path("./tests/data/db"))
 
@@ -23,8 +22,8 @@ class TestInfoSaver(unittest.TestCase):
     def test_saveperson(self):
         self.saver.save_person(info_person=self.info)
 
-        new_info = self.info_generator.get_informations(
-            "Lorenzo", Path("./tests/data/esempio2.txt"))
+        new_info = self.info_generator.load_sheet_person_from_exercises_file("Lorenzo",
+                                                                             Path("./tests/data/esempio2.txt"))
 
         self.saver.save_person(info_person=new_info)
         self.assertTrue(True)

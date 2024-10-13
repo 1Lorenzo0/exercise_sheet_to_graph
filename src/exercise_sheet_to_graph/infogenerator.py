@@ -1,8 +1,10 @@
 import re
+import yaml
 from pathlib import Path
 from typing import Union, Tuple, Optional
 import exercise_sheet_to_graph.models as gm
 from exercise_sheet_to_graph.utils import get_logger
+from pydantic import ValidationError
 
 logger = get_logger("sheet_to_graph")
 
@@ -11,7 +13,35 @@ class InfoGenerator:
     def __init__(self):
         pass
 
-    def get_informations(self, name: str, file: Union[Path, str]) -> Optional[gm.SheetPerson]:
+    def load_sheet_person_from_yaml(self, file: Union[Path, str]) -> Optional[gm.SheetPerson]:
+        """
+        Loads a SheetPerson's information from a YAML file.
+
+        :param file: The file containing the SheetPerson's information.
+        :return: The SheetPerson object if found, otherwise None.
+        """
+        try:
+            file = Path(file)
+            if not file.is_file():
+                logger.error("No file in input")
+                return None
+
+            with open(file, 'r') as read_file:
+                data = yaml.safe_load(read_file)
+
+            person = gm.SheetPerson.model_validate(data)
+            return person
+        except FileNotFoundError:
+            logger.error("File not found")
+            return None
+        except yaml.YAMLError as e:
+            logger.error(f"Error loading file: {e}")
+            return None
+        except ValidationError as e:
+            logger.error(f"Error validating data: {e}")
+            return None
+
+    def load_sheet_person_from_exercises_file(self, name: str, file: Union[Path, str]) -> Optional[gm.SheetPerson]:
         """
         Creates information from the input, performing operations to compare what has been saved
         (the exercise timestamp is important).

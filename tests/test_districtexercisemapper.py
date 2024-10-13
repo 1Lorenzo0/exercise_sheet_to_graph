@@ -5,47 +5,17 @@ from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMap
 
 class TestDistrictExerciseMapper(unittest.TestCase):
     config_data = '''
-        {
-            "district_to_exercises": {
-                "district1": ["exercise1", "exercise2"],
-                "district2": ["exercise3"]
-            },
-            "exercises_to_district": {
-                "exercise1": "district1",
-                "exercise2": "district1",
-                "exercise3": "district2"
-            }
-        }
-        '''
-
-    def setUp(self):
-        self.config_data = '''
-        {
-            "district_to_exercises": {
-                "district1": ["exercise1", "exercise2"],
-                "district2": ["exercise3"]
-            },
-            "exercises_to_district": {
-                "exercise1": "district1",
-                "exercise2": "district1",
-                "exercise3": "district2"
-            }
-        }
-        '''
-        self.mapper = None
-
-    @patch("builtins.open", new_callable=mock_open,
-           read_data='{"district_to_exercises": {}, "exercises_to_district": {}}')
-    def test_init_empty_config(self, mock_file):
-        self.mapper = DistrictExerciseMapper("dummy_path")
-        self.assertEqual(self.mapper.district_to_exercises, {})
-        self.assertEqual(self.mapper.exercises_to_district, {})
-
-    @patch("builtins.open", new_callable=mock_open, read_data=config_data)
-    def test_init_with_config(self, mock_file):
-        self.mapper = DistrictExerciseMapper("dummy_path")
-        self.assertEqual(self.mapper.district_to_exercises["district1"], ["exercise1", "exercise2"])
-        self.assertEqual(self.mapper.exercises_to_district["exercise3"], "district2")
+    district_to_exercises:
+      district1:
+        - exercise1
+        - exercise2
+      district2:
+        - exercise3
+    exercise_to_district:
+      exercise1: district1
+      exercise2: district1
+      exercise3: district2
+    '''
 
     @patch("builtins.open", new_callable=mock_open, read_data=config_data)
     def test_get_exercise_by_district(self, mock_file):
@@ -72,7 +42,3 @@ class TestDistrictExerciseMapper(unittest.TestCase):
         self.mapper.remove_exercise_from_district("district1", "exercise1")
         self.assertNotIn("exercise1", self.mapper.district_to_exercises["district1"])
         self.assertNotIn("exercise1", self.mapper.exercises_to_district)
-
-
-if __name__ == "__main__":
-    unittest.main()

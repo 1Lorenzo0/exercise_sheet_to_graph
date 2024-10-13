@@ -3,7 +3,7 @@ import yaml
 from datetime import datetime
 from pydantic import ValidationError
 from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
-from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson, SheetPeople
+from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson
 from exercise_sheet_to_graph.utils import normalize_string
 
 app = Flask(__name__)
@@ -15,7 +15,7 @@ exercise_mapper = DistrictExerciseMapper(config_path='../../config/district_and_
 def index():
     districts = list(exercise_mapper.district_to_exercises.keys())
     exercises = list(exercise_mapper.exercises_to_district.keys())
-    print(exercises)
+
     return render_template('index.html', districts=districts, exercises=exercises,
                            district_to_exercises=exercise_mapper.district_to_exercises,
                            exercises_to_district=exercise_mapper.exercises_to_district)
@@ -59,17 +59,12 @@ def submit():
             exercises=exercise_list
         )
 
-        # Create an instance of SheetPeople (modify this if not necessary)
-        data = SheetPeople(
-            people=[person]
-        )
-
         # Serialize data to YAML
-        yaml_data = yaml.safe_dump(data.dict(), allow_unicode=True)
+        yaml_data = yaml.safe_dump(person.dict(), allow_unicode=True)
 
         # Save the data to a YAML file
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'data_{timestamp}_{name}_{surname}.yaml'
+        filename = f'../db/data_{timestamp}_{name}_{surname}.yaml'
         with open(filename, 'w', encoding='utf-8') as file:
             file.write(yaml_data)
 

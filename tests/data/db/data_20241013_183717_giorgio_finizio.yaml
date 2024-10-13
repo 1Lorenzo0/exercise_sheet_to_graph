@@ -1,0 +1,14 @@
+exercises:
+- district: petto
+  name: croci al cavo basso
+  volumes:
+  - reps: 10
+    ts: '2024-10-13 18:36:52.276386'
+    weight: 10
+- district: bicipiti
+  name: curl con manubri in piedi
+  volumes:
+  - reps: 10
+    ts: '2024-10-13 18:36:52.276386'
+    weight: 10
+name: giorgio finizio

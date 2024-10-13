@@ -1,10 +1,12 @@
 from exercise_sheet_to_graph.graph_creator import GraphCreator
+from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 from exercise_sheet_to_graph.models import Exercise
 
 
 class GraphViewer:
-    def __init__(self):
-        self.graph_creator = GraphCreator()
+    def __init__(self, mapper: DistrictExerciseMapper):
+        self.mapper = mapper
+        self.graph_creator = GraphCreator(mapper)
 
     def show_volume_graph(self, exercise: Exercise) -> None:
         """

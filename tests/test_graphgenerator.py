@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 from exercise_sheet_to_graph.models import Exercise, Volume
 from exercise_sheet_to_graph.graph_creator import GraphCreator
+from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 
 
 class TestGraphCreator(unittest.TestCase):
@@ -17,7 +18,7 @@ class TestGraphCreator(unittest.TestCase):
                 Volume(ts=str(datetime(2023, 5, 1)), weight=100, reps=14),
             ]
         )
-        self.graph_creator = GraphCreator()
+        self.graph_creator = GraphCreator(DistrictExerciseMapper("./config/district_and_exercise_italian.yaml"))
 
     def test_create_volume_graph(self):
         # Create the graph
@@ -57,15 +58,3 @@ class TestGraphCreator(unittest.TestCase):
         self.assertEqual(fig.layout.title.text, "Reps Over Time for Bench Press - 100 Kg")
         self.assertEqual(fig.layout.xaxis.title.text, "Time")
         self.assertEqual(fig.layout.yaxis.title.text, "Reps")
-
-    def test_show_weight_per_reps_graph(self):
-        # Check if the method runs without errors
-        self.graph_creator.show_weight_per_reps_graph(self.exercise, 10)
-
-    def test_show_volume_graph(self):
-        # Check if the method runs without errors
-        self.graph_creator.show_volume_graph(self.exercise)
-
-    def test_show_reps_per_weight_graph(self):
-        # Check if the method runs without errors
-        self.graph_creator.show_reps_per_weight_graph(self.exercise, 100)

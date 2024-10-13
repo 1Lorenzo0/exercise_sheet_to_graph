@@ -22,6 +22,7 @@ class GraphViewer:
         :param exercise: The Exercise object containing weight data.
         :param reps: The specific number of reps to filter the data.
         """
+
         fig = self.graph_creator.create_weight_per_reps_graph(exercise, reps)
         fig.show()
 

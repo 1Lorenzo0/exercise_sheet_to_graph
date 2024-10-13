@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from exercise_sheet_to_graph.GraphViewer import GraphViewer
+from exercise_sheet_to_graph.graph_viewer import GraphViewer
 from exercise_sheet_to_graph.models import Volume, Exercise
 
 

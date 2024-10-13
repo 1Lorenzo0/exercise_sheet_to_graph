@@ -63,21 +63,15 @@ def submit():
             exercises=exercise_list
         )
 
-        # Serialize data to YAML
-        yaml_data = yaml.safe_dump(person.dict(), allow_unicode=True)
-
-        # Save the data to a YAML file
-        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        # filename = f'../../db/data_{timestamp}_{name}_{surname}.yaml'
-        # with open(filename, 'w', encoding='utf-8') as file:
-        #     file.write(yaml_data)
-
+        # Save the data using InfoSaver
         info_saver.save_person(person)
 
-        return f'Data saved for {person.name}'
+        return f'Data saved successfully'
 
     except ValidationError as e:
         return f'Data validation error: {e}', 400
+    except Exception as e:
+        return f'An unexpected error occurred: {e}', 500
 
 
 if __name__ == '__main__':

@@ -1,2 +1,2 @@
-pydantic
-pycryptodome
+pydantic==2.9.2
+plotly==5.24.1

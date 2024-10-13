@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, url_for, redirect, session
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -9,14 +9,44 @@ from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson
 from exercise_sheet_to_graph.utils import normalize_string
 
 app = Flask(__name__)
+app.secret_key = "not_forever_key"
 
 # Load the district and exercise mapper, load the info saver
 exercise_mapper = DistrictExerciseMapper(config_path='../../config/district_and_exercise_italian.yaml')
 info_saver = InfoSaver(base_dir=Path('../../db'))
 
 
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # TODO: Create an authentication system
+        if username == 'admin' and password == 'password':
+            session['logged_in'] = True
+            session['username'] = username
+            return redirect(url_for('index'))
+        else:
+            error = 'Credenziali non valide, riprova.'
+            return render_template('login.html', error=error)
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 @app.route('/', methods=['GET'])
 def index():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
     districts = list(exercise_mapper.district_to_exercises.keys())
     exercises = list(exercise_mapper.exercises_to_district.keys())
 
@@ -27,6 +57,9 @@ def index():
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
     try:
         # Get data from form
         name = normalize_string(request.form.get('name'))
@@ -66,7 +99,7 @@ def submit():
         # Save the data using InfoSaver
         info_saver.save_person(person)
 
-        return f'Data saved successfully'
+        return f'Data saved for {person.name}'
 
     except ValidationError as e:
         return f'Data validation error: {e}', 400

@@ -37,7 +37,10 @@
 <body>
 
 <div class="container">
-    <h1 class="mb-4">Inserisci i tuoi esercizi</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Inserisci i tuoi esercizi</h1>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+    </div>
 
     <form id="exercise-form" method="POST" action="/submit">
         <!-- Campi del form per Nome e Cognome -->

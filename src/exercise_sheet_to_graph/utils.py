@@ -13,3 +13,7 @@ def get_logger(logger_name: str):
         ch.setFormatter(formatter)
         logger.addHandler(ch)
     return logger
+
+
+def normalize_string(s):
+    return ' '.join(s.lower().strip().split())

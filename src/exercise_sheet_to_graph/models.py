@@ -4,7 +4,7 @@ import pydantic
 
 
 class Volume(pydantic.BaseModel):
-    weight: int = 0
+    weight: float = 0
     reps: int = 0
     ts: str = str(datetime.now())
 

@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from pydantic import ValidationError
+from datetime import timedelta  # Importa timedelta per il timeout della sessione
 from exercise_sheet_to_graph.district_exercise_mapper import DistrictExerciseMapper
 from exercise_sheet_to_graph.infosaver import InfoSaver
 from exercise_sheet_to_graph.models import Exercise, Volume, SheetPerson
@@ -17,6 +18,9 @@ app.secret_key = 'to_a_better_key'
 # Configura il database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
+
+# Configura il timeout della sessione (esempio: 30 minuti)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -40,7 +44,10 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user = User.query.get(int(user_id))
+    if user:
+        session.permanent = True  # Rende la sessione permanente per rispettare il timeout configurato
+    return user
 
 
 # Load the district and exercise mapper, load the info saver
@@ -67,13 +74,13 @@ class LoginForm(FlaskForm):
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # Verifiy if the username is already in use
+        # Verifica se l'username è già in uso
         existing_user = User.query.filter_by(username=form.username.data).first()
         if existing_user:
             error = 'Nome utente già in uso. Scegli un altro.'
             return render_template('register.html', form=form, error=error)
 
-        # Create a new user
+        # Crea un nuovo utente
         hashed_password = generate_password_hash(form.password.data)
         new_user = User(
             username=form.username.data,
@@ -92,10 +99,11 @@ def register():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        # Search user in database
+        # Cerca l'utente nel database
         user = User.query.filter_by(username=form.username.data).first()
         if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
+            session.permanent = True  # Rende la sessione permanente al login
             return redirect(url_for('index'))
         else:
             error = 'Credenziali non valide. Riprova.'
@@ -103,22 +111,41 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
 
+# Modifica della rotta '/' per mostrare il messaggio di benvenuto e le opzioni
 @app.route('/', methods=['GET'])
 @login_required
 def index():
+    name = current_user.name
+    return render_template('home.html', name=name)
+
+
+@app.route('/add_exercises', methods=['GET'])
+@login_required
+def add_exercises():
     districts = list(exercise_mapper.district_to_exercises.keys())
     exercises = list(exercise_mapper.exercises_to_district.keys())
+    district_to_exercises = exercise_mapper.district_to_exercises
+    exercises_to_district = exercise_mapper.exercises_to_district
+    weights = [round(i * 2.5, 1) for i in range(1, 81)]  # Da 2.5 a 200 con incrementi di 2.5
+    return render_template('index.html', districts=districts,
+                           exercises=exercises,
+                           district_to_exercises=district_to_exercises,
+                           exercises_to_district=exercises_to_district,
+                           weights=weights)
 
-    return render_template('index.html', districts=districts, exercises=exercises,
-                           district_to_exercises=exercise_mapper.district_to_exercises,
-                           exercises_to_district=exercise_mapper.exercises_to_district)
+
+# Nuova rotta per il pannello di visualizzazione grafici
+@app.route('/graphs', methods=['GET'])
+@login_required
+def graphs():
+    return render_template('graphs.html')
 
 
 @app.route('/submit', methods=['POST'])
@@ -138,7 +165,7 @@ def submit():
             weight = request.form.get(f'exercises[{index}][weight]')
 
             volume = Volume(
-                weight=int(weight),
+                weight=float(weight),
                 reps=int(reps)
             )
 
@@ -158,12 +185,12 @@ def submit():
 
         info_saver.save_person(person)
 
-        return f'Data saved for {person.name}'
+        return render_template('success.html', name=person.name)
 
     except ValidationError as e:
-        return f'Data validation error: {e}', 400
+        return f'Errore di validazione dei dati: {e}', 400
     except Exception as e:
-        return f'An unexpected error occurred: {e}', 500
+        return f'Si è verificato un errore inaspettato: {e}', 500
 
 
 if __name__ == '__main__':

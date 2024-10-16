@@ -1,147 +1,160 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Registro Esercizi</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .exercise {
-            margin-bottom: 15px;
-            border: 1px solid #dee2e6;
-            padding: 15px;
-            border-radius: 5px;
-            background-color: #f8f9fa;
-            position: relative;
-        }
-        .remove-exercise {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .remove-exercise:hover {
-            background-color: #c82333;
-        }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Inserisci i tuoi esercizi</h1>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
-    </div>
+{% block title %}Aggiungi Esercizi{% endblock %}
 
-    <form id="exercise-form" method="POST" action="/submit">
-        <!-- I campi Nome e Cognome sono stati rimossi -->
-
-        <div id="exercise-container">
-            <!-- Gli esercizi saranno aggiunti qui -->
+{% block content %}
+<h1 class="mt-5">Aggiungi Esercizi</h1>
+<form id="exerciseForm" method="POST" action="{{ url_for('submit') }}">
+    <div id="exercises">
+        <!-- Inizialmente avremo un solo esercizio -->
+        <div class="exercise-item border p-3 mb-3" data-index="1">
+            <!-- Pulsante per rimuovere l'esercizio -->
+            <button type="button" class="close remove-exercise" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <!-- Campi del modulo -->
+            <div class="form-group">
+                <label>Distretto Muscolare</label>
+                <select class="form-control district-select" name="exercises[1][district]" required>
+                    <option value="">Seleziona un distretto</option>
+                    {% for district in districts %}
+                    <option value="{{ district }}">{{ district }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nome Esercizio</label>
+                <select class="form-control exercise-select" name="exercises[1][name]" required>
+                    <option value="">Seleziona un esercizio</option>
+                    {% for exercise in exercises %}
+                    <option value="{{ exercise }}">{{ exercise }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ripetizioni</label>
+                <select class="form-control" name="exercises[1][reps]" required>
+                    {% for rep in range(1, 31) %}
+                    <option value="{{ rep }}">{{ rep }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Peso (kg)</label>
+                <select class="form-control" name="exercises[1][weight]" required>
+                    {% for weight in weights %}
+                    <option value="{{ weight }}">{{ weight }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
+    </div>
+    <!-- Contenitore per allineare i pulsanti -->
+    <div class="d-flex justify-content-between mt-3">
+        <button type="button" id="addExercise" class="btn btn-success">Aggiungi Esercizio</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+    </div>
+</form>
 
-        <button type="button" class="btn btn-primary" onclick="addExercise()">Aggiungi Esercizio</button><br><br>
-
-        <input type="submit" class="btn btn-success" value="Invia">
-    </form>
-</div>
-
-<!-- Bootstrap JS e dipendenze -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-
+<!-- JavaScript per gestire l'aggiunta e rimozione dinamica degli esercizi -->
 <script>
-    let exerciseCounter = 1;
+    let exerciseIndex = 1;
+    const districtToExercises = {{ district_to_exercises | safe }};
+    const exercisesToDistrict = {{ exercises_to_district | safe }};
+    const weights = {{ weights | safe }};
 
-    // Dati dal backend
-    const districtToExercises = {{ district_to_exercises | tojson | safe }};
-    const exerciseToDistrict = {{ exercises_to_district | tojson | safe }};
-    const districts = {{ districts | tojson | safe }};
-    const exercises = {{ exercises | tojson | safe }};
-
-    function addExercise() {
-        const container = document.getElementById('exercise-container');
-
-        const div = document.createElement('div');
-        div.className = 'exercise';
-        div.id = `exercise-${exerciseCounter}`;
-
-        div.innerHTML = `
-            <button type="button" class="remove-exercise" onclick="removeExercise(${exerciseCounter})">Rimuovi</button>
-
-            <h5>Esercizio ${exerciseCounter}</h5>
-
+    document.getElementById('addExercise').addEventListener('click', function() {
+        exerciseIndex++;
+        const exerciseItem = document.createElement('div');
+        exerciseItem.classList.add('exercise-item', 'border', 'p-3', 'mb-3');
+        exerciseItem.setAttribute('data-index', exerciseIndex);
+        exerciseItem.innerHTML = `
+            <button type="button" class="close remove-exercise" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
             <div class="form-group">
-                <label for="district${exerciseCounter}">Distretto Muscolare:</label>
-                <select class="form-control" id="district${exerciseCounter}" name="exercises[${exerciseCounter}][district]" onchange="updateExercises(${exerciseCounter})" required>
-                    <option value="">Seleziona Distretto Muscolare</option>
-                    ${districts.map(district => `<option value="${district}">${district}</option>`).join('')}
+                <label>Distretto Muscolare</label>
+                <select class="form-control district-select" name="exercises[${exerciseIndex}][district]" required>
+                    <option value="">Seleziona un distretto</option>
+                    {% for district in districts %}
+                    <option value="{{ district }}">{{ district }}</option>
+                    {% endfor %}
                 </select>
             </div>
-
             <div class="form-group">
-                <label for="exerciseName${exerciseCounter}">Nome Esercizio:</label>
-                <select class="form-control" id="exerciseName${exerciseCounter}" name="exercises[${exerciseCounter}][name]" required>
-                    <option value="">Seleziona Esercizio</option>
-                    ${exercises.map(exercise => `<option value="${exercise}">${exercise}</option>`).join('')}
+                <label>Nome Esercizio</label>
+                <select class="form-control exercise-select" name="exercises[${exerciseIndex}][name]" required>
+                    <option value="">Seleziona un esercizio</option>
+                    {% for exercise in exercises %}
+                    <option value="{{ exercise }}">{{ exercise }}</option>
+                    {% endfor %}
                 </select>
             </div>
-
             <div class="form-group">
-                <label for="reps${exerciseCounter}">Numero Ripetizioni:</label>
-                <input type="number" class="form-control" id="reps${exerciseCounter}" name="exercises[${exerciseCounter}][reps]" required>
+                <label>Ripetizioni</label>
+                <select class="form-control" name="exercises[${exerciseIndex}][reps]" required>
+                    {% for rep in range(1, 31) %}
+                    <option value="{{ rep }}">{{ rep }}</option>
+                    {% endfor %}
+                </select>
             </div>
-
             <div class="form-group">
-                <label for="weight${exerciseCounter}">Kilogrammi:</label>
-                <input type="number" class="form-control" id="weight${exerciseCounter}" name="exercises[${exerciseCounter}][weight]" required>
+                <label>Peso (kg)</label>
+                <select class="form-control" name="exercises[${exerciseIndex}][weight]" required>
+                    {% for weight in weights %}
+                    <option value="{{ weight }}">{{ weight }}</option>
+                    {% endfor %}
+                </select>
             </div>
         `;
+        document.getElementById('exercises').appendChild(exerciseItem);
+    });
 
-        container.appendChild(div);
-
-        exerciseCounter++;
-    }
-
-    function removeExercise(index) {
-        const exerciseDiv = document.getElementById(`exercise-${index}`);
-        if (exerciseDiv) {
-            exerciseDiv.remove();
-        }
-    }
-
-    function updateExercises(index) {
-        const districtSelect = document.getElementById(`district${index}`);
-        const exerciseSelect = document.getElementById(`exerciseName${index}`);
-        const selectedDistrict = districtSelect.value;
-
-        // Reset esercizi
-        exerciseSelect.innerHTML = '<option value="">Seleziona Esercizio</option>';
-
-        if (selectedDistrict) {
-            const availableExercises = districtToExercises[selectedDistrict];
-
-            availableExercises.forEach(exercise => {
+    // Funzione per aggiornare i campi quando uno viene modificato
+    document.addEventListener('change', function(event) {
+        if (event.target && event.target.classList.contains('district-select')) {
+            const districtSelect = event.target;
+            const exerciseSelect = districtSelect.parentElement.nextElementSibling.querySelector('.exercise-select');
+            const selectedDistrict = districtSelect.value;
+            // Seleziona gli esercizi corrispondenti al distretto selezionato
+            const exercises = districtToExercises[selectedDistrict] || [];
+            exerciseSelect.innerHTML = '<option value="">Seleziona un esercizio</option>';
+            exercises.forEach(function(exercise) {
                 const option = document.createElement('option');
                 option.value = exercise;
                 option.textContent = exercise;
                 exerciseSelect.appendChild(option);
             });
         }
-    }
 
-    // Opzionale: Aggiungi un esercizio di default all'apertura della pagina
-    // addExercise();
+        if (event.target && event.target.classList.contains('exercise-select')) {
+            const exerciseSelect = event.target;
+            const districtSelect = exerciseSelect.parentElement.previousElementSibling.querySelector('.district-select');
+            const selectedExercise = exerciseSelect.value;
+            const district = exercisesToDistrict[selectedExercise] || '';
+            if (district) {
+                districtSelect.value = district;
+                // Aggiorna la lista degli esercizi in base al distretto
+                const exercises = districtToExercises[district] || [];
+                exerciseSelect.innerHTML = '<option value="">Seleziona un esercizio</option>';
+                exercises.forEach(function(exercise) {
+                    const option = document.createElement('option');
+                    option.value = exercise;
+                    option.textContent = exercise;
+                    exerciseSelect.appendChild(option);
+                });
+                // Imposta l'esercizio selezionato
+                exerciseSelect.value = selectedExercise;
+            }
+        }
+    });
+
+    // Funzione per rimuovere un esercizio
+    document.addEventListener('click', function(event) {
+        if (event.target && event.target.closest('.remove-exercise')) {
+            const exerciseItem = event.target.closest('.exercise-item');
+            exerciseItem.remove();
+        }
+    });
 </script>
-
-</body>
-</html>
+{% endblock %}
